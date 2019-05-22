@@ -143,6 +143,12 @@ RCT_EXPORT_METHOD(getEmail:(RCTPromiseResolveBlock)resolve rejecter:(RCTPromiseR
       if([phoneNos count] > 0) {
         CNPhoneNumber *phone = ((CNLabeledValue *)phoneNos[0]).value;
         [contactData setValue:phone.stringValue forKey:@"phone"];
+        NSMutableArray *phones = [[NSMutableArray alloc] init];
+        for (CNLabeledValue p in phoneNos) {
+          NSString *phoneNumber = ((CNLabeledValue *)p).value;
+          [phones addObject:p.stringValue];
+        }
+        [contactData setValue:phones forKey:@"phones"];
       }
       
       //Return first email address
