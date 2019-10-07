@@ -12,30 +12,36 @@
 
 @property(nonatomic, retain) RCTPromiseResolveBlock _resolve;
 @property(nonatomic, retain) RCTPromiseRejectBlock _reject;
-
+@property(nonatomic, retain) UIViewController *picker;
 @end
 
 
 @implementation RCTContactsWrapper
 
 int _requestCode;
+
 const int REQUEST_CONTACT = 1;
 const int REQUEST_EMAIL = 2;
 
 
 RCT_EXPORT_MODULE(ContactsWrapper);
 
+RCT_EXPORT_METHOD(closePopup) {
+  [_picker dismissViewControllerAnimated:YES completion:nil];
+}
+
 /* Get basic contact data as JS object */
 RCT_EXPORT_METHOD(getContact:(RCTPromiseResolveBlock)resolve rejecter:(RCTPromiseRejectBlock)reject)
-  {
-    self._resolve = resolve;
-    self._reject = reject;
-    _requestCode = REQUEST_CONTACT;
-    
-    [self launchContacts];
-    
-    
-  }
+
+{
+  self._resolve = resolve;
+  self._reject = reject;
+  _requestCode = REQUEST_CONTACT;
+  
+  [self launchContacts];
+  
+  
+}
 
 /* Get ontact email as string */
 RCT_EXPORT_METHOD(getEmail:(RCTPromiseResolveBlock)resolve rejecter:(RCTPromiseRejectBlock)reject)
@@ -55,24 +61,23 @@ RCT_EXPORT_METHOD(getEmail:(RCTPromiseResolveBlock)resolve rejecter:(RCTPromiseR
  */
 -(void) launchContacts {
   
-  UIViewController *picker;
   if([CNContactPickerViewController class]) {
     //iOS 9+
-    picker = [[CNContactPickerViewController alloc] init];
-    ((CNContactPickerViewController *)picker).delegate = self;
+    _picker = [[CNContactPickerViewController alloc] init];
+    ((CNContactPickerViewController *)_picker).delegate = self;
   } else {
     //iOS 8 and below
-    picker = [[ABPeoplePickerNavigationController alloc] init];
-    [((ABPeoplePickerNavigationController *)picker) setPeoplePickerDelegate:self];
+    _picker = [[ABPeoplePickerNavigationController alloc] init];
+    [((ABPeoplePickerNavigationController *)_picker) setPeoplePickerDelegate:self];
   }
   //Launch Contact Picker or Address Book View Controller
   UIViewController *root = [[[UIApplication sharedApplication] delegate] window].rootViewController;
   BOOL modalPresent = (BOOL) (root.presentedViewController);
   if (modalPresent) {
-	  UIViewController *parent = root.presentedViewController;
-	  [parent presentViewController:picker animated:YES completion:nil];
+    UIViewController *parent = root.presentedViewController;
+    [parent presentViewController:_picker animated:YES completion:nil];
   } else {
-	  [root presentViewController:picker animated:YES completion:nil];
+    [root presentViewController:_picker animated:YES completion:nil];
   }
   
 }
@@ -174,7 +179,7 @@ RCT_EXPORT_METHOD(getEmail:(RCTPromiseResolveBlock)resolve rejecter:(RCTPromiseR
     default:
       //Should never happen, but just in case, reject promise
       [self pickerError];
-    break;
+      break;
   }
   
   
@@ -200,7 +205,7 @@ RCT_EXPORT_METHOD(getEmail:(RCTPromiseResolveBlock)resolve rejecter:(RCTPromiseR
        This could also be extended to return arrays of phone numbers, email addresses etc. instead of jsut first found
        */
       NSMutableDictionary *contactData = [self emptyContactDict];
-            NSString *fNameObject, *mNameObject, *lNameObject;
+      NSString *fNameObject, *mNameObject, *lNameObject;
       fNameObject = (__bridge NSString *) ABRecordCopyValue(person, kABPersonFirstNameProperty);
       mNameObject = (__bridge NSString *) ABRecordCopyValue(person, kABPersonMiddleNameProperty);
       lNameObject = (__bridge NSString *) ABRecordCopyValue(person, kABPersonLastNameProperty);
@@ -216,7 +221,7 @@ RCT_EXPORT_METHOD(getEmail:(RCTPromiseResolveBlock)resolve rejecter:(RCTPromiseR
       if([phoneNos count] > 0) {
         [contactData setValue:phoneNos[0] forKey:@"phone"];
       }
-     
+      
       //Return first email
       ABMultiValueRef emailMultiValue = ABRecordCopyValue(person, kABPersonEmailProperty);
       NSArray *emailAddresses = (__bridge NSArray *)ABMultiValueCopyArrayOfAllValues(emailMultiValue);
@@ -224,7 +229,7 @@ RCT_EXPORT_METHOD(getEmail:(RCTPromiseResolveBlock)resolve rejecter:(RCTPromiseR
         [contactData setValue:emailAddresses[0] forKey:@"email"];
       }
       
-
+      
       [self contactPicked:contactData];
     }
       break;
@@ -241,7 +246,7 @@ RCT_EXPORT_METHOD(getEmail:(RCTPromiseResolveBlock)resolve rejecter:(RCTPromiseR
       [self emailPicked:emailAddresses[0]];
     }
       break;
-
+      
     default:
       //Should never happen, but just in case, reject promise
       [self pickerError];
